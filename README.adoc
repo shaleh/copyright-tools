@@ -12,7 +12,8 @@ Right now the assumption is that '#' marks a comment.
 == Hacking
 
 === Tests
-``./setup-tests.sh`` creates the virtualenv's you need.
-``./run-tests.sh`` will run them. TEST_ENV= controls which env to run.
+- ``./setup-tests.sh`` creates the virtualenv's you need.
+- ``./run-tests.sh`` will run them. TEST_ENV= controls which env to run.
+- ``./cleanup-tests.sh`` for when you are done
 
 Issues or pull requests welcomed.
