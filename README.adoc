@@ -1,0 +1,18 @@
+= Copyright Tools
+
+== Available Tools
+
+=== tools/update_copyright_year.py
+It does what its name says. --copyright-name is used to find the correct line to update.
+
+    update_copyright_year.py --copyright-name "Sean Perry" *.py
+
+Right now the assumption is that '#' marks a comment.
+
+== Hacking
+
+=== Tests
+``./setup-tests.sh`` creates the virtualenv's you need.
+``./run-tests.sh`` will run them. TEST_ENV= controls which env to run.
+
+Issues or pull requests welcomed.
