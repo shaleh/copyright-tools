@@ -118,7 +118,10 @@ class CopyrightedFile(object):
 
         if self._needs_updating:
             # only read the whole file if necessary
-            self._lines.extend(self._fp.readlines())
+            self._lines = ''.join(self._lines)
+            self._lines += self._fp.read()
+        else:
+            self._lines = []
 
         self._fp.close()
 
@@ -127,7 +130,7 @@ class CopyrightedFile(object):
             print("Writing {}...".format(filename))
             if not dry_run:
                 with open(filename, "w") as fp:
-                    fp.writelines(self._lines)
+                    fp.write(self._lines)
         else:
             print("No-op")
 
