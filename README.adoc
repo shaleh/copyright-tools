@@ -9,6 +9,9 @@ It does what its name says. --copyright-name is used to find the correct line to
 
 Right now the assumption is that '#' marks a comment.
 
+=== helpers/pre-review
+This is a hook intended for use with 'git review'. Put it in ~/.config/git-review/hooks/pre-review and chmod +x it.
+
 == Hacking
 
 === Tests

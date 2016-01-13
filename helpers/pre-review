@@ -1,0 +1,53 @@
+#!/bin/sh
+
+COPYRIGHT_NAME="Foo Corp, Inc."
+INTERNAL_REVIEW_HOST="foo\.example\.net"
+
+# Nothing below here should require editing.
+
+# Ensure we are at top of the git tree before running
+while [ ! -d .git ]
+do
+    if [ "$PWD" = "/" ]
+    then
+        exit 1  # Did not find a git repository?!?
+    fi
+    cd ..
+done
+
+if [ ! -f .gitreview ]
+then
+    # Does not have a .gitreview. We cannot determine whether to run.
+    exit 0
+fi
+
+# Look for a line like: host=review.example.com
+review_host=`grep host= .gitreview | cut -f2 -d=`
+
+echo "$review_host" | grep -qe "$INTERNAL_REVIEW_HOST"
+if [ $? -ne 0 ]
+then
+    # External repository, skip it. Only run this against our own code.
+    exit 0
+fi
+
+# First, save the current commit message. This is the commit under review.
+COMMIT_MSG=`git log -n 1 --format="%s%n%n%b"`
+# Get the commit hash for the next step
+ORIGINAL_COMMIT_HASH=`git log -n 1 --format="%H"`
+# Determine the list of files affected by this commit
+FILES=`git show --pretty="format:" --name-only ${ORIGINAL_COMMIT_HASH}`
+
+# Now, update any copyrights
+update_copyright_year.py --copyright-name "${COPYRIGHT_NAME}" ${FILES}
+
+# Undo the commit but leave the original modifications in place along with any
+# date changes
+git reset --soft HEAD~1
+
+# Add the files back to the commit
+git add ${FILES}
+
+# Make a new commit with the original message. The original change ID assigned
+# by review will remain intact.
+echo "${COMMIT_MSG}" | git commit -F -
