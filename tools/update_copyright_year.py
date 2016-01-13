@@ -84,9 +84,9 @@ class CopyrightedFile(object):
 
         self.lineno = 1
 
-        # use a while loop and readline to enable called .read() later.
-        # When used in a loop, a read-ahead buffer is used which would
-        # break the later read() call
+        # use a while loop and readline to enable calling .read() later.
+        # When used in a for loop, a read-ahead buffer is used which would
+        # break the call to read() later
 
         while True:
             if self.lineno > 10:
@@ -140,7 +140,8 @@ class UpdateCopyright(object):
         \s+
         (?:\(c\)|©)?         # Other location for optional copyright symbol
         \s*
-        (?P<years>[0-9, -]+) # Supports 1995 or 1995-1996 or 1995,1997
+        # Supports 1995 or 1995-1996 or 1995,1997 or a combination
+        (?P<years>(?:[0-9]+(?:\s*-\s*[0-9]+)?\s*,\s*)*(?:[0-9]+(?:\s*-\s*[0-9]+)?))
         \s+
         {COPYRIGHT_NAME}     # Copyright holder's name
         \s*$
