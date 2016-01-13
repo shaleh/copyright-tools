@@ -20,17 +20,6 @@ def patch_open():
     return mock.patch(open_location)
 
 
-class TestUpdateCopyright(unittest.TestCase):
-    def testRegex(self):
-        u = UpdateCopyright("Foo Corp, Inc.")
-        last_year = u._year - 1
-
-        self.assertIsNotNone(u._pat.match(" # Copyright: 2014 Foo Corp, Inc."))
-        self.assertIsNotNone(u._pat.match(" # (c) Copyright: 2014 Foo Corp, Inc."))
-        self.assertIsNotNone(u._pat.match(" # Copyright (c) 2014 Foo Corp, Inc."))
-        self.assertIsNotNone(u._pat.match(" # © Copyright: 2014 Foo Corp, Inc."))
-
-
 class TestCopyrightedFile(unittest.TestCase):
     def setUp(self):
         self.this_year = 2016
@@ -39,19 +28,55 @@ class TestCopyrightedFile(unittest.TestCase):
         self.u = UpdateCopyright(self.copyright_name)
         self.cf = CopyrightedFile(None, self.u._pat, self.this_year)
 
+    def testNoMatch(self):
+        m, copyrights = self.cf._match_line("# Copyright 2014 Someone Else")
+        self.assertIsNone(m)
+
+    def testSimpleCases(self):
+        m, copyrights = self.cf._match_line(" # Copyright: 2014 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2014, 2014), ], copyrights)
+
+        m, copyrights = self.cf._match_line(" # Copyright: (c) 2014 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2014, 2014), ], copyrights)
+
+        m, copyrights = self.cf._match_line(" # (c) Copyright: 2014 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2014, 2014), ], copyrights)
+
+        m, copyrights = self.cf._match_line(" # © Copyright: 2014 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2014, 2014), ], copyrights)
+
+    def testCommaLists(self):
+        m, copyrights = self.cf._match_line("# Copyright © 2010,2012,2014 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2010, 2010), (2012, 2012), (2014, 2014), ], copyrights)
+
+        m, copyrights = self.cf._match_line(" # Copyright: 2014, 2016 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2014, 2014), (2016, 2016), ], copyrights)
+
+    def testComplexDates(self):
+        m, copyrights = self.cf._match_line(" # Copyright: 2013,2015-2017 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2013, 2013), (2015, 2017), ], copyrights)
+
+        m, copyrights = self.cf._match_line(" # Copyright: 2010-2014, 2016 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2010, 2014), (2016, 2016), ], copyrights)
+
+        m, copyrights = self.cf._match_line(" # Copyright: 2005 - 2010, 2013, 2015 - 2017 Foo Corp, Inc.")
+        self.assertIsNotNone(m)
+        self.assertEquals([(2005, 2010), (2013, 2013), (2015, 2017), ], copyrights)
+
     def testProcessLineNoMatch(self):
         self.assertIsNone(self.cf._process_line("# Foo"))
 
     def testPrcoessLineThisYear(self):
         result = self.cf._process_line("# Copyright {} {}".format(self.this_year, self.copyright_name))
         self.assertIs("", result)
-
-    def testPrcoessLineThisYearComplex(self):
-        result = self.cf._process_line("# Copyright 2010-2012,{} {}".format(self.this_year, self.copyright_name))
-        self.assertIs("", result)
-        result = self.cf._process_line("# Copyright 2010-{} {}".format(self.last_year - 2000, self.copyright_name))
-        self.assertEquals("# Copyright 2010-{} {}".format(self.this_year, self.copyright_name),
-                          result)
 
     def testPrcoessLineRegionWithThisYear(self):
         start = self.this_year - 2
@@ -71,30 +96,49 @@ class TestCopyrightedFile(unittest.TestCase):
                           result)
 
     def testProcessGood(self):
-        self.fake_fp = six.StringIO("""
+        initial = """
 # Copyright {} {}
 
 print "monkey"
-""".format(self.last_year, self.copyright_name))
-        self.cf._fp = self.fake_fp
-        self.cf.process("dummy")
-        self.assertEquals(4, len(self.cf._lines))
-        self.assertEquals("# Copyright 2015-{} {}\n".format(self.this_year, self.copyright_name),
-                          self.cf._lines[1])
-        self.assertTrue(self.cf._needs_updating)
+""".format(self.last_year, self.copyright_name)
 
-        with patch_open() as fake_open:
-            self.cf.update("dummy")
-            self.assertTrue(fake_open.called)
+        expected = """
+# Copyright {}-{} {}
+
+print "monkey"
+""".format(self.last_year, self.this_year, self.copyright_name)
+
+        self.cf._fp = six.StringIO(initial)
+
+        self.cf.process("dummy")
+        self.assertTrue(self.cf._needs_updating)
+        self.assertEquals(expected, self.cf._lines)
 
         # Ensure dry run works
         with patch_open() as fake_open:
             self.cf.update("dummy", dry_run=True)
             self.assertFalse(fake_open.called)
 
-    def testProcessNone(self):
-        self.fake_fp = six.StringIO("""
-# BSD Copyright 2015 Some one
+        with patch_open() as fake_open:
+            self.cf.update("dummy")
+            self.assertTrue(fake_open.called)
+
+    def testProcessNoChange(self):
+        initial = """
+# Copyright {} {}
+
+print "monkey"
+""".format(self.this_year, self.copyright_name)
+
+        self.cf._fp = six.StringIO(initial)
+
+        self.cf.process("dummy")
+        self.assertFalse(self.cf._needs_updating)
+        self.assertEquals([], self.cf._lines)
+
+    def testProcessNoMatch(self):
+        initial = """
+# BSD Copyright {} Some one
 
 1
 2
@@ -106,13 +150,12 @@ print "monkey"
 8
 9
 10
-""")
-        self.cf._fp = self.fake_fp
+"""
+        self.cf._fp = six.StringIO(initial.format(self.last_year))
 
         self.cf.process("dummy")
-        # prove only read 10 lines
-        self.assertEquals(10, len(self.cf._lines))
         self.assertFalse(self.cf._needs_updating)
+        self.assertEquals([], self.cf._lines)
 
         with patch_open() as fake_open:
             self.cf.update("dummy")
