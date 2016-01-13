@@ -53,12 +53,17 @@ class CopyrightedFile(object):
         self._needs_updating = False
         self._lines = []
 
-    def _process_line(self, line):
+    def _match_line(self, line):
         match = self._pattern.match(line)
         if not match:
-            return None
+            return None, []
 
-        copyrights = copyright_years(match.group('years'))
+        return match, copyright_years(match.group('years'))
+
+    def _process_line(self, line):
+        match, copyrights = self._match_line(line)
+        if match is None:
+            return None
 
         valid = any(start <= self._year <= end for start, end in copyrights)
         if not valid:
