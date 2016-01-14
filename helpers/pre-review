@@ -40,6 +40,10 @@ FILES=`git show --pretty="format:" --name-only ${ORIGINAL_COMMIT_HASH}`
 
 # Now, update any copyrights
 update_copyright_year.py --copyright-name "${COPYRIGHT_NAME}" ${FILES}
+if [ $? -ne 0 ]
+then
+    exit 2  # block the review if the tool fails
+fi
 
 # Undo the commit but leave the original modifications in place along with any
 # date changes
