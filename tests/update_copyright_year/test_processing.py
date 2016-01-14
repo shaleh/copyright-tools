@@ -25,7 +25,7 @@ class TestCopyrightedFile(unittest.TestCase):
         self.this_year = 2016
         self.last_year = self.this_year - 1
         self.copyright_name = "Foo Corp, Inc."
-        self.u = UpdateCopyright(self.copyright_name)
+        self.u = UpdateCopyright(self.copyright_name, self.this_year)
         self.cf = CopyrightedFile(None, self.u._pat, self.this_year)
 
     def testNoMatch(self):
@@ -93,6 +93,55 @@ class TestCopyrightedFile(unittest.TestCase):
         year = self.this_year - 3
         result = self.cf._process_line("# Copyright {} {}".format(year, self.copyright_name))
         self.assertEquals("# Copyright {},{} {}".format(year, self.this_year, self.copyright_name),
+                          result)
+
+    def testProcessLineYearsInThePast(self):
+        year = self.this_year - 3
+        self.cf._year = year
+        result = self.cf._process_line("# Copyright {} {}".format(self.this_year, self.copyright_name))
+        self.assertEquals("# Copyright {},{} {}".format(year, self.this_year, self.copyright_name),
+                          result)
+
+    def testProcessLineOneYearInThePast(self):
+        self.cf._year = self.last_year
+        result = self.cf._process_line("# Copyright {} {}".format(self.this_year, self.copyright_name))
+        self.assertEquals("# Copyright {}-{} {}".format(self.last_year, self.this_year, self.copyright_name),
+                          result)
+
+    def testProcessLineYearsInThePastComplex(self):
+        self.cf._year = 2013
+        result = self.cf._process_line("# Copyright 2012,2016 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2012-2013,2016 {}".format(self.copyright_name),
+                          result)
+
+        self.cf._year = 2002
+        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2002,2004,2007,2010-2015 {}".format(self.copyright_name),
+                          result)
+
+        self.cf._year = 2003
+        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2003-2004,2007,2010-2015 {}".format(self.copyright_name),
+                          result)
+
+        self.cf._year = 2005
+        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2004-2005,2007,2010-2015 {}".format(self.copyright_name),
+                          result)
+
+        self.cf._year = 2006
+        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2004,2006-2007,2010-2015 {}".format(self.copyright_name),
+                          result)
+
+        self.cf._year = 2008
+        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2004,2007-2008,2010-2015 {}".format(self.copyright_name),
+                          result)
+
+        self.cf._year = 2008
+        result = self.cf._process_line("# Copyright 2004,2006,2010-2015 {}".format(self.copyright_name))
+        self.assertEquals("# Copyright 2004,2006,2008,2010-2015 {}".format(self.copyright_name),
                           result)
 
     def testProcessGood(self):

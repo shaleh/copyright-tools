@@ -69,10 +69,30 @@ class CopyrightedFile(object):
         if not valid:
             # update the year trying to follow the existing pattern
             start, end = copyrights[-1]
+
             if (self._year - 1) == end:
                 # change the end of the range. This prevents 2015,2016,2017
                 # but allows 2014,2017
                 copyrights[-1] = (start, self._year)
+            elif self._year < start:
+                count = 0
+
+                # Start looking for a spot at the beginning of the list
+                for start, end in copyrights:
+                    if self._year < start:
+                        # Update, place at beginning of range
+                        if (self._year + 1) == start:
+                            copyrights[count] = (self._year, end)
+                        else:
+                            # Insert new value separately
+                            copyrights.insert(count, (self._year, self._year))
+                        break
+                    elif (end + 1) == self._year:
+                        # Update, place at end of range
+                        copyrights[count] = (start, self._year)
+                        break
+
+                    count += 1
             else:
                 # add another entry
                 copyrights.append((self._year, self._year))
@@ -155,13 +175,13 @@ class UpdateCopyright(object):
         \s*$
     """  # noqa
 
-    def __init__(self, copyright_name, dry_run=False, verbose=False):
+    def __init__(self, copyright_name, year, dry_run=False, verbose=False):
+        self._year = year
+
         self._dry_run = dry_run
         self._verbose = verbose
         self._pat = re.compile(self._copyright_regex.format(COPYRIGHT_NAME=re.escape(copyright_name)),
                                re.VERBOSE | re.IGNORECASE)
-
-        self._year = datetime.now().year
 
     def run(self, files):
         for filename in files:
@@ -177,9 +197,15 @@ if __name__ == '__main__':
     parser.add_argument("--copyright-name", type=str, required=True)
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--verbose", action="store_true", default=False)
+    parser.add_argument("--year", type=int)
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
-    tool = UpdateCopyright(copyright_name=args.copyright_name,
+    if args.year is None:
+        year = datetime.now().year
+    else:
+        year = args.year
+
+    tool = UpdateCopyright(copyright_name=args.copyright_name, year=year,
                            dry_run=args.dry_run, verbose=args.verbose)
     tool.run(args.files)

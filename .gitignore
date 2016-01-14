@@ -3,3 +3,4 @@
 .coverage
 test-env
 py34-test-env
+test-run
