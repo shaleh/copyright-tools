@@ -45,6 +45,7 @@ def string_from_copyrights(copyrights):
 
 
 class CopyrightedFile(object):
+
     def __init__(self, fp, pattern, year, verbose=False):
         self._fp = fp
         self._pattern = pattern

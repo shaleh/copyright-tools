@@ -21,6 +21,7 @@ def patch_open():
 
 
 class TestCopyrightedFile(unittest.TestCase):
+
     def setUp(self):
         self.this_year = 2016
         self.last_year = self.this_year - 1
