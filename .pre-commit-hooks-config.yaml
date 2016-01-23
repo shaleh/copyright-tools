@@ -1,0 +1,6 @@
+-   id: github-openstack-bandit
+    name: Bandit security checks
+    description: "Runs bandit over python source."
+    entry: bandit
+    language: python
+    files: \.py$

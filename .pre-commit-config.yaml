@@ -7,3 +7,7 @@
    - id: end-of-file-fixer
    - id: flake8
    - id: trailing-whitespace
+- repo: https://github.com/openstack/bandit
+  sha: 0.17.0
+  hooks:
+   - id: github-openstack-bandit
