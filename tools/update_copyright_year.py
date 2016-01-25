@@ -227,11 +227,13 @@ def main(args=None):
         args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description="Copyright date update tool")
-    parser.add_argument("--copyright-name", type=str, required=True)
-    parser.add_argument("--skip-comment-check-for", type=str, action="append")
+    parser.add_argument("--copyright-name", type=str, required=True,
+                        help="The complete name used in the copyright assignment. The tool assumes that the line ends after this text.")  # noqa
+    parser.add_argument("--skip-comment-check-for", type=str, action="append",
+                        help="Takes a standard shell glob such as '*.md'. Remember to use single quotes around the glob so the shell does not consume them. Can be repeated as needed.")  # noqa
+    parser.add_argument("--year", type=int, help="Use this <year> instead of current year.")
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--verbose", action="store_true", default=False)
-    parser.add_argument("--year", type=int)
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
