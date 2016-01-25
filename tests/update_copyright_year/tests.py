@@ -1,6 +1,7 @@
 import unittest
 
 from update_copyright_year import copyright_years, string_from_copyrights
+from update_copyright_year import should_skip
 
 
 class TestCopyrightYears(unittest.TestCase):
@@ -41,3 +42,11 @@ class TestStringFromCopyrights(unittest.TestCase):
         self.assertEquals("2015-2017", string_from_copyrights([(2015, 2017), ]))
 
         self.assertEquals("2012-2015,2017", string_from_copyrights([(2012, 2015), (2017, 2017), ]))
+
+
+class TestShouldSkip(unittest.TestCase):
+
+    def testYes(self):
+        self.assertTrue(should_skip(["*"], "foo"))
+        self.assertTrue(should_skip(["*.md"], "foo.md"))
+        self.assertTrue(should_skip(["README"], "README"))

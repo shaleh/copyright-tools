@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 from datetime import datetime
+from fnmatch import fnmatch
 import re
 
 
@@ -156,11 +157,16 @@ class CopyrightedFile(object):
             print("No-op")
 
 
+def should_skip(glob_list, filename):
+    return any(fnmatch(filename, glob) for glob in glob_list)
+
+
 class UpdateCopyright(object):
     """Process files to update their copyright dates"""
 
-    _copyright_regex = r"""
-        ^\s*
+    _commented_copyright_regex = r"""
+        ^
+        \s*
         [#;]+                # Must be in a comment
         \s*
         (?:\(c\)|©)?         # Optional copyright symbol
@@ -176,26 +182,53 @@ class UpdateCopyright(object):
         \s*$
     """  # noqa
 
-    def __init__(self, copyright_name, year, dry_run=False, verbose=False):
+    _copyright_regex = r"""
+        ^
+        \s*
+        (?:\(c\)|©)?         # Optional copyright symbol
+        \s*
+        Copyright:?          # Word 'copyright' with optional colon
+        \s+
+        (?:\(c\)|©)?         # Other location for optional copyright symbol
+        \s*
+        # Supports 1995 or 1995-1996 or 1995,1997 or a combination
+        (?P<years>(?:[0-9]+(?:\s*-\s*[0-9]+)?\s*,\s*)*(?:[0-9]+(?:\s*-\s*[0-9]+)?))
+        \s+
+        {COPYRIGHT_NAME}     # Copyright holder's name
+        \s*$
+    """  # noqa
+
+    def __init__(self, copyright_name, year):
         self._year = year
 
-        self._dry_run = dry_run
-        self._verbose = verbose
         self._pat = re.compile(self._copyright_regex.format(COPYRIGHT_NAME=re.escape(copyright_name)),
                                re.VERBOSE | re.IGNORECASE)
+        self._commented_pat = re.compile(self._commented_copyright_regex.format(COPYRIGHT_NAME=re.escape(copyright_name)),  # noqa
+                                         re.VERBOSE | re.IGNORECASE)
 
-    def run(self, files):
+    def run(self, files, skip_comment_check_for=[], dry_run=False, verbose=False):
         for filename in files:
-            item = CopyrightedFile(open(filename), self._pat, self._year, verbose=self._verbose)
+            pat = None
+            if filename in should_skip(skip_comment_check_for):
+                pat = self._pat
+            else:
+                pat = self._commented_pat
+
+            item = CopyrightedFile(open(filename), pat, self._year, verbose=verbose)
             item.process(filename)
-            item.update(filename, dry_run=self._dry_run)
+            item.update(filename, dry_run=dry_run)
 
 
-if __name__ == '__main__':
+def main(args=None):
     import argparse
+    import sys
+
+    if args is None:
+        args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description="Copyright date update tool")
     parser.add_argument("--copyright-name", type=str, required=True)
+    parser.add_argument("--skip-comment-check-for", type=str, action="append")
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--verbose", action="store_true", default=False)
     parser.add_argument("--year", type=int)
@@ -207,6 +240,9 @@ if __name__ == '__main__':
     else:
         year = args.year
 
-    tool = UpdateCopyright(copyright_name=args.copyright_name, year=year,
-                           dry_run=args.dry_run, verbose=args.verbose)
-    tool.run(args.files)
+    tool = UpdateCopyright(copyright_name=args.copyright_name, year=year)
+    tool.run(args.files, skip_comment_check_for=args.skip_comment_check_for,
+             dry_run=args.dry_run, verbose=args.verbose)
+
+if __name__ == '__main__':
+    main()

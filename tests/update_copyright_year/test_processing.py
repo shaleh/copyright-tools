@@ -27,7 +27,7 @@ class TestCopyrightedFile(unittest.TestCase):
         self.last_year = self.this_year - 1
         self.copyright_name = "Foo Corp, Inc."
         self.u = UpdateCopyright(self.copyright_name, self.this_year)
-        self.cf = CopyrightedFile(None, self.u._pat, self.this_year)
+        self.cf = CopyrightedFile(None, self.u._commented_pat, self.this_year)
 
     def testNoMatch(self):
         m, copyrights = self.cf._match_line("# Copyright 2014 Someone Else")
@@ -51,6 +51,8 @@ class TestCopyrightedFile(unittest.TestCase):
         self.assertEquals([(2014, 2014), ], copyrights)
 
     def testCommaLists(self):
+        # import pdb; pdb.set_trace()
+
         m, copyrights = self.cf._match_line("# Copyright © 2010,2012,2014 Foo Corp, Inc.")
         self.assertIsNotNone(m)
         self.assertEquals([(2010, 2010), (2012, 2012), (2014, 2014), ], copyrights)
@@ -210,3 +212,11 @@ print "monkey"
         with patch_open() as fake_open:
             self.cf.update("dummy")
             self.assertFalse(fake_open.called)
+
+    def testUncommented(self):
+        # note the pattern used
+        cf2 = CopyrightedFile(None, self.u._pat, self.this_year)
+
+        m, copyrights = cf2._match_line(" Copyright 2015 {}".format(self.copyright_name))
+        self.assertIsNotNone(m)
+        self.assertEquals([(2015, 2015)], copyrights)
