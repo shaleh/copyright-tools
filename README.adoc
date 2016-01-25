@@ -3,14 +3,25 @@
 == Available Tools
 
 === tools/update_copyright_year.py
-It does what its name says. --copyright-name is used to find the correct line to update.
+Use the name provided by --copyright-name to find the appropriate copyright
+line and update its year.
 
     update_copyright_year.py --copyright-name "Sean Perry" *.py
 
-Right now the assumption is that '#' marks a comment.
+Will find a line like:
+
+    # Copyright (c) 2015 Sean Perry
+
+and update it to be:
+
+    # Copyright (c) 2015-2016 Sean Perry
+
+Only comment lines are checked. Right now the assumption is that '#' or ';'
+marks a comment.
 
 === helpers/pre-review
-This is a hook intended for use with 'git review'. Put it in ~/.config/git-review/hooks/pre-review and chmod +x it.
+This is a hook intended for use with 'git review'. Put it in ~/.config/git-review/hooks/pre-review and chmod +x it. This will run update_copyright_year on all
+of the files in the current commit that is about to be reviewed.
 
 == Hacking
 
