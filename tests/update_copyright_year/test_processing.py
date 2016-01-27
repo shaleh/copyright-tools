@@ -8,7 +8,9 @@ try:
 except ImportError:
     import unittest.mock as mock
 
-from update_copyright_year import CopyrightedFile, UpdateCopyright
+from update_copyright_year import CopyrightedFile
+from update_copyright_year import UpdateCopyright
+from update_copyright_year import insert_year
 
 
 def patch_open():
@@ -18,6 +20,71 @@ def patch_open():
         open_location = "builtins.open"
 
     return mock.patch(open_location)
+
+
+class TestInsertYear(unittest.TestCase):
+    def testSingles(self):
+        years = [(2010,2010),(2012,2012)]
+        result = insert_year(2015, years)
+        self.assertTrue(result)
+        self.assertEquals([(2010,2010),(2012,2012),(2015,2015)], years)
+
+        years = [(2014,2014)]
+        result = insert_year(2016, years)
+        self.assertTrue(result)
+        self.assertEquals([(2014,2014),(2016,2016)], years)
+
+        years = [(2014,2014)]
+        result = insert_year(2012, years)
+        self.assertTrue(result)
+        self.assertEquals([(2012, 2012), (2014,2014)], years)
+
+    def testWithinExisting(self):
+        years = [(2007,2007),(2010,2015)]
+        expected = years[:]
+        result = insert_year(2014, years)
+        self.assertFalse(result)
+        self.assertEquals(expected, years)
+
+        years = [(2010,2015)]
+        expected = years[:]
+        result = insert_year(2014, years)
+        self.assertFalse(result)
+        self.assertEquals(expected, years)
+
+        years = [(2015,2015)]
+        expected = years[:]
+        result = insert_year(2015, years)
+        self.assertFalse(result)
+        self.assertEquals(expected, years)
+
+    def testUpdateExisting(self):
+        base_years = [(2006,2006),(2009,2011),(2014,2015)]
+
+        years = base_years[:]
+        result = insert_year(2007, years)
+        self.assertTrue(result)
+        self.assertEquals([(2006,2007),(2009,2011),(2014,2015)], years)
+
+        years = base_years[:]
+        result = insert_year(2008, years)
+        self.assertTrue(result)
+        self.assertEquals([(2006,2006),(2008,2011),(2014,2015)], years)
+
+        years = base_years[:]
+        result = insert_year(2012, years)
+        self.assertTrue(result)
+        self.assertEquals([(2006,2006),(2009,2012),(2014,2015)], years)
+
+        years = base_years[:]
+        result = insert_year(2013, years)
+        self.assertTrue(result)
+        self.assertEquals([(2006,2006),(2009,2011),(2013,2015)], years)
+
+        years = base_years[:]
+        result = insert_year(2016, years)
+        self.assertTrue(result)
+        self.assertEquals([(2006,2006),(2009,2011),(2014,2016)], years)
 
 
 class TestCopyrightedFile(unittest.TestCase):
@@ -51,8 +118,6 @@ class TestCopyrightedFile(unittest.TestCase):
         self.assertEquals([(2014, 2014), ], copyrights)
 
     def testCommaLists(self):
-        # import pdb; pdb.set_trace()
-
         m, copyrights = self.cf._match_line("# Copyright © 2010,2012,2014 Foo Corp, Inc.")
         self.assertIsNotNone(m)
         self.assertEquals([(2010, 2010), (2012, 2012), (2014, 2014), ], copyrights)
@@ -80,72 +145,6 @@ class TestCopyrightedFile(unittest.TestCase):
     def testPrcoessLineThisYear(self):
         result = self.cf._process_line("# Copyright {} {}".format(self.this_year, self.copyright_name))
         self.assertIs("", result)
-
-    def testPrcoessLineRegionWithThisYear(self):
-        start = self.this_year - 2
-        end = self.this_year + 2
-        result = self.cf._process_line("# Copyright {}-{} {}".format(start, end, self.copyright_name))
-        self.assertIs("", result)
-
-    def testProcessLineLastYear(self):
-        result = self.cf._process_line("# Copyright {} {}".format(self.last_year, self.copyright_name))
-        self.assertEquals("# Copyright {}-{} {}".format(self.last_year, self.this_year, self.copyright_name),
-                          result)
-
-    def testProcessLineOlder(self):
-        year = self.this_year - 3
-        result = self.cf._process_line("# Copyright {} {}".format(year, self.copyright_name))
-        self.assertEquals("# Copyright {},{} {}".format(year, self.this_year, self.copyright_name),
-                          result)
-
-    def testProcessLineYearsInThePast(self):
-        year = self.this_year - 3
-        self.cf._year = year
-        result = self.cf._process_line("# Copyright {} {}".format(self.this_year, self.copyright_name))
-        self.assertEquals("# Copyright {},{} {}".format(year, self.this_year, self.copyright_name),
-                          result)
-
-    def testProcessLineOneYearInThePast(self):
-        self.cf._year = self.last_year
-        result = self.cf._process_line("# Copyright {} {}".format(self.this_year, self.copyright_name))
-        self.assertEquals("# Copyright {}-{} {}".format(self.last_year, self.this_year, self.copyright_name),
-                          result)
-
-    def testProcessLineYearsInThePastComplex(self):
-        self.cf._year = 2013
-        result = self.cf._process_line("# Copyright 2012,2016 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2012-2013,2016 {}".format(self.copyright_name),
-                          result)
-
-        self.cf._year = 2002
-        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2002,2004,2007,2010-2015 {}".format(self.copyright_name),
-                          result)
-
-        self.cf._year = 2003
-        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2003-2004,2007,2010-2015 {}".format(self.copyright_name),
-                          result)
-
-        self.cf._year = 2005
-        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2004-2005,2007,2010-2015 {}".format(self.copyright_name),
-                          result)
-
-        self.cf._year = 2006
-        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2004,2006-2007,2010-2015 {}".format(self.copyright_name),
-                          result)
-
-        self.cf._year = 2008
-        result = self.cf._process_line("# Copyright 2004,2007,2010-2015 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2004,2007-2008,2010-2015 {}".format(self.copyright_name),
-                          result)
-
-        self.cf._year = 2008
-        result = self.cf._process_line("# Copyright 2004,2006,2010-2015 {}".format(self.copyright_name))
-        self.assertEquals("# Copyright 2004,2006,2008,2010-2015 {}".format(self.copyright_name),
-                          result)
 
     def testProcessGood(self):
         initial = """

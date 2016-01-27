@@ -45,6 +45,35 @@ def string_from_copyrights(copyrights):
     return ",".join(pieces)
 
 
+def insert_year(year, ranges):
+    pos = 0
+
+    for (start, end) in ranges:
+        if (year + 1) == start:
+            # Update, replace beginning of range
+            ranges[pos] = (year, end)
+            break
+        elif year < start:
+            # Insert new value separately
+            ranges.insert(pos, (year, year))
+            break
+        elif year <= end:
+            # already present
+            return False
+        elif year == (end + 1):
+            # Update, replace end of range
+            ranges[pos] = (start, year)
+            break
+
+        pos += 1
+
+    if pos == len(ranges):
+        # reached end of ranges without finding a spot. add another entry
+        ranges.append((year, year))
+
+    return True
+
+
 class CopyrightedFile(object):
 
     def __init__(self, fp, pattern, year, verbose=False):
@@ -67,40 +96,9 @@ class CopyrightedFile(object):
         if match is None:
             return None
 
-        valid = any(start <= self._year <= end for start, end in copyrights)
-        if not valid:
-            # update the year trying to follow the existing pattern
-            start, end = copyrights[-1]
-
-            if (self._year - 1) == end:
-                # change the end of the range. This prevents 2015,2016,2017
-                # but allows 2014,2017
-                copyrights[-1] = (start, self._year)
-            elif self._year < start:
-                count = 0
-
-                # Start looking for a spot at the beginning of the list
-                for start, end in copyrights:
-                    if self._year < start:
-                        # Update, place at beginning of range
-                        if (self._year + 1) == start:
-                            copyrights[count] = (self._year, end)
-                        else:
-                            # Insert new value separately
-                            copyrights.insert(count, (self._year, self._year))
-                        break
-                    elif (end + 1) == self._year:
-                        # Update, place at end of range
-                        copyrights[count] = (start, self._year)
-                        break
-
-                    count += 1
-            else:
-                # add another entry
-                copyrights.append((self._year, self._year))
-
+        updated = insert_year(self._year, copyrights)
+        if updated:
             new_copyright_dates = string_from_copyrights(copyrights)
-
             return line[:match.start(1)] + new_copyright_dates + line[match.end(1):]
 
         return ""
