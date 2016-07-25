@@ -1,7 +1,8 @@
 #!/bin/sh
 
-COPYRIGHT_NAME="Foo Corp, Inc."
-INTERNAL_REVIEW_HOST="foo\.example\.net"
+OLD_COPYRIGHT_NAME="Foo Corp, Inc."
+COPYRIGHT_NAME="Bar Corp, Inc."
+INTERNAL_REVIEW_HOST="review\.example\.com"
 
 # Nothing below here should require editing.
 
@@ -39,6 +40,14 @@ ORIGINAL_COMMIT_HASH=`git log -n 1 --format="%H"`
 FILES=`git show --pretty="format:" --name-only ${ORIGINAL_COMMIT_HASH}`
 
 # Now, update any copyrights
+if [ ! -z "${OLD_COPYRIGHT_NAME}" ]; then
+    update_copyright_name.py --old-copyright "${OLD_COPYRIGHT_NAME}" --new-copyright "${COPYRIGHT_NAME}" ${FILES}
+fi
+if [ $? -ne 0 ]
+then
+    exit 2  # block the review if the tool fails
+fi
+
 update_copyright_year.py --copyright-name "${COPYRIGHT_NAME}" ${FILES}
 if [ $? -ne 0 ]
 then

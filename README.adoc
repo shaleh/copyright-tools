@@ -6,22 +6,39 @@
 Use the name provided by --copyright-name to find the appropriate copyright
 line and update its year.
 
-    update_copyright_year.py --copyright-name "Sean Perry" *.py
+    update_copyright_year.py --copyright-name "Foo Corp, Inc." *.py
 
 Will find a line like:
 
-    # Copyright (c) 2015 Sean Perry
+    # Copyright (c) 2015 Foo Corp, Inc.
 
 and update it to be:
 
-    # Copyright (c) 2015-2016 Sean Perry
+    # Copyright (c) 2015-2016 Foo Corp, Inc.
 
 Only comment lines are checked. Right now the assumption is that '#' or ';'
 marks a comment.
 
-=== helpers/pre-review
-This is a hook intended for use with 'git review'. Put it in ~/.config/git-review/hooks/pre-review and chmod +x it. This will run update_copyright_year on all
-of the files in the current commit that is about to be reviewed.
+=== tools/update_copyright_name.py
+Replaced --old-copyright with --new-copyright in the files specified.
+
+    update_copyright_name.py --old-copyright "Foo Corp, Inc." --new-copyright "Bar Corp, Inc."
+
+Will find a line like:
+
+    # Copyright (c) 2015 Foo Corp, Inc.
+
+and update it to be:
+
+    # Copyright (c) 2015 Bar Corp, Inc.
+
+Only comment lines are checked. Right now the assumption is that '#' or ';'
+marks a comment.
+
+=== helpers/pre-review This is a hook intended for use with 'git review'.
+Put it in ~/.config/git-review/hooks/pre-review and chmod +x it.
+This will run update_copyright_year on all of the files in the current commit
+that is about to be reviewed.
 
 == Hacking
 
