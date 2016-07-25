@@ -207,7 +207,7 @@ class UpdateCopyright(object):
     def run(self, files, skip_comment_check_for=[], dry_run=False, verbose=False):
         for filename in files:
             pat = None
-            if filename in should_skip(skip_comment_check_for):
+            if should_skip(skip_comment_check_for, filename):
                 pat = self._pat
             else:
                 pat = self._commented_pat
@@ -227,7 +227,7 @@ def main(args=None):
     parser = argparse.ArgumentParser(description="Copyright date update tool")
     parser.add_argument("--copyright-name", type=str, required=True,
                         help="The complete name used in the copyright assignment. The tool assumes that the line ends after this text.")  # noqa
-    parser.add_argument("--skip-comment-check-for", type=str, action="append",
+    parser.add_argument("--skip-comment-check-for", type=str, action="append", default=[],
                         help="Takes a standard shell glob such as '*.md'. Remember to use single quotes around the glob so the shell does not consume them. Can be repeated as needed.")  # noqa
     parser.add_argument("--year", type=int, help="Use this <year> instead of current year.")
     parser.add_argument("--dry-run", action="store_true", default=False)
