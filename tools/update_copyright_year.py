@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
-from __future__ import print_function
 
 from datetime import datetime
 from fnmatch import fnmatch
@@ -13,7 +11,7 @@ def copyright_years(years):
 
     for group in [s.strip() for s in years.split(',')]:
         try:
-            start, end = [s.strip() for s in group.split('-')]
+            start, end = (s.strip() for s in group.split('-'))
         except ValueError:
             start = end = group
 
@@ -40,7 +38,7 @@ def string_from_copyrights(copyrights):
         if start == end:
             pieces.append(str(start))
         else:
-            pieces.append("{}-{}".format(start, end))
+            pieces.append(f"{start}-{end}")
 
     return ",".join(pieces)
 
@@ -74,7 +72,7 @@ def insert_year(year, ranges):
     return True
 
 
-class CopyrightedFile(object):
+class CopyrightedFile:
 
     def __init__(self, fp, pattern, year, verbose=False):
         self._fp = fp
@@ -105,7 +103,7 @@ class CopyrightedFile(object):
 
     def process(self, filename):
         if self._verbose:
-            print("Processing: {}".format(filename))
+            print(f"Processing: {filename}")
 
         self.lineno = 1
 
@@ -147,7 +145,7 @@ class CopyrightedFile(object):
 
     def update(self, filename, dry_run=False):
         if self._needs_updating:
-            print("Writing {}...".format(filename))
+            print(f"Writing {filename}...")
             if not dry_run:
                 with open(filename, "w") as fp:
                     fp.write(self._lines)
@@ -159,7 +157,7 @@ def should_skip(glob_list, filename):
     return any(fnmatch(filename, glob) for glob in glob_list)
 
 
-class UpdateCopyright(object):
+class UpdateCopyright:
     """Process files to update their copyright dates"""
 
     _commented_copyright_regex = r"""

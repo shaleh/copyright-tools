@@ -1,14 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
 
 from fnmatch import fnmatch
 import re
 
 
-class CopyrightedFile(object):
-
+class CopyrightedFile:
     def __init__(self, fp, pattern, old, new, verbose=False):
         self._fp = fp
         self._pattern = pattern
@@ -20,7 +16,7 @@ class CopyrightedFile(object):
 
     def process(self, filename):
         if self._verbose:
-            print("Processing: {}".format(filename))
+            print(f"Processing: {filename}")
 
         self.lineno = 1
 
@@ -73,7 +69,7 @@ def should_skip(glob_list, filename):
     return any(fnmatch(filename, glob) for glob in glob_list)
 
 
-class UpdateCopyright(object):
+class UpdateCopyright:
     """Process files to remove 'company' from the copright"""
 
     _commented_copyright_regex = r"""
