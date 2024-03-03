@@ -9,9 +9,9 @@ import re
 def copyright_years(years):
     copyrights = []
 
-    for group in [s.strip() for s in years.split(',')]:
+    for group in [s.strip() for s in years.split(",")]:
         try:
-            start, end = (s.strip() for s in group.split('-'))
+            start, end = (s.strip() for s in group.split("-"))
         except ValueError:
             start = end = group
 
@@ -22,7 +22,7 @@ def copyright_years(years):
             if copyrights:
                 century = str(copyrights[-1][1])[0:2]
             else:
-                century = '20'
+                century = "20"
 
             start = century + start
             end = century + end
@@ -46,7 +46,7 @@ def string_from_copyrights(copyrights):
 def insert_year(year, ranges):
     pos = 0
 
-    for (start, end) in ranges:
+    for start, end in ranges:
         if (year + 1) == start:
             # Update, replace beginning of range
             ranges[pos] = (year, end)
@@ -73,7 +73,6 @@ def insert_year(year, ranges):
 
 
 class CopyrightedFile:
-
     def __init__(self, fp, pattern, year, verbose=False):
         self._fp = fp
         self._pattern = pattern
@@ -83,21 +82,19 @@ class CopyrightedFile:
         self._lines = []
 
     def _match_line(self, line):
-        match = self._pattern.match(line)
-        if not match:
-            return None, []
+        if match := self._pattern.match(line):
+            return match, copyright_years(match.group("years"))
 
-        return match, copyright_years(match.group('years'))
+        return None, []
 
     def _process_line(self, line):
         match, copyrights = self._match_line(line)
         if match is None:
             return None
 
-        updated = insert_year(self._year, copyrights)
-        if updated:
+        if updated := insert_year(self._year, copyrights):
             new_copyright_dates = string_from_copyrights(copyrights)
-            return line[:match.start(1)] + new_copyright_dates + line[match.end(1):]
+            return line[: match.start(1)] + new_copyright_dates + line[match.end(1) :]
 
         return ""
 
@@ -119,24 +116,23 @@ class CopyrightedFile:
 
             self.lineno += 1
 
-            line = self._fp.readline()
-            if not line:
+            
+            if not (line := self._fp.readline()):
                 break  # EOF
 
             self._lines.append(line)
-            result = self._process_line(line)
-            if result is None:
-                continue  # no match, keep looking
-            elif not result:
-                break  # found but already up to date
-            else:
+            if result := self._process_line(line):
                 self._lines[-1] = result
                 self._needs_updating = True
                 break
+            elif result is None:
+                continue  # no match, keep looking
+            else:
+                break  # found but already up to date
 
         if self._needs_updating:
             # only read the whole file if necessary
-            self._lines = ''.join(self._lines)
+            self._lines = "".join(self._lines)
             self._lines += self._fp.read()
         else:
             self._lines = []
@@ -197,10 +193,16 @@ class UpdateCopyright:
     def __init__(self, copyright_name, year):
         self._year = year
 
-        self._pat = re.compile(self._copyright_regex.format(COPYRIGHT_NAME=re.escape(copyright_name)),
-                               re.VERBOSE | re.IGNORECASE)
-        self._commented_pat = re.compile(self._commented_copyright_regex.format(COPYRIGHT_NAME=re.escape(copyright_name)),  # noqa
-                                         re.VERBOSE | re.IGNORECASE)
+        self._pat = re.compile(
+            self._copyright_regex.format(COPYRIGHT_NAME=re.escape(copyright_name)),
+            re.VERBOSE | re.IGNORECASE,
+        )
+        self._commented_pat = re.compile(
+            self._commented_copyright_regex.format(
+                COPYRIGHT_NAME=re.escape(copyright_name)
+            ),  # noqa
+            re.VERBOSE | re.IGNORECASE,
+        )
 
     def run(self, files, skip_comment_check_for=[], dry_run=False, verbose=False):
         for filename in files:
@@ -223,11 +225,22 @@ def main(args=None):
         args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description="Copyright date update tool")
-    parser.add_argument("--copyright-name", type=str, required=True,
-                        help="The complete name used in the copyright assignment. The tool assumes that the line ends after this text.")  # noqa
-    parser.add_argument("--skip-comment-check-for", type=str, action="append", default=[],
-                        help="Takes a standard shell glob such as '*.md'. Remember to use single quotes around the glob so the shell does not consume them. Can be repeated as needed.")  # noqa
-    parser.add_argument("--year", type=int, help="Use this <year> instead of current year.")
+    parser.add_argument(
+        "--copyright-name",
+        type=str,
+        required=True,
+        help="The complete name used in the copyright assignment. The tool assumes that the line ends after this text.",
+    )  # noqa
+    parser.add_argument(
+        "--skip-comment-check-for",
+        type=str,
+        action="append",
+        default=[],
+        help="Takes a standard shell glob such as '*.md'. Remember to use single quotes around the glob so the shell does not consume them. Can be repeated as needed.",
+    )  # noqa
+    parser.add_argument(
+        "--year", type=int, help="Use this <year> instead of current year."
+    )
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--verbose", action="store_true", default=False)
     parser.add_argument("files", nargs="+")
@@ -239,8 +252,13 @@ def main(args=None):
         year = args.year
 
     tool = UpdateCopyright(copyright_name=args.copyright_name, year=year)
-    tool.run(args.files, skip_comment_check_for=args.skip_comment_check_for,
-             dry_run=args.dry_run, verbose=args.verbose)
+    tool.run(
+        args.files,
+        skip_comment_check_for=args.skip_comment_check_for,
+        dry_run=args.dry_run,
+        verbose=args.verbose,
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

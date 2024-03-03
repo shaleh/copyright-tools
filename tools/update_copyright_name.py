@@ -32,13 +32,11 @@ class CopyrightedFile:
 
             self.lineno += 1
 
-            line = self._fp.readline()
-            if not line:
+            if not (line := self._fp.readline()):
                 break  # EOF
 
             # Match with a pattern to be properly cautious. Once detected the text can be safely replaced.
-            m = self._pattern.match(line)
-            if m:
+            if self._pattern.match(line):
                 new = line.replace(self._old_copyright, self._new_copyright)
                 self._lines.append(new)
                 self._needs_updating = True
@@ -48,7 +46,7 @@ class CopyrightedFile:
 
         if self._needs_updating:
             # only read the whole file if necessary
-            self._lines = ''.join(self._lines)
+            self._lines = "".join(self._lines)
             self._lines += self._fp.read()
         else:
             self._lines = []
@@ -57,7 +55,8 @@ class CopyrightedFile:
 
     def update(self, filename, dry_run=False):
         if self._needs_updating:
-            print("{} {}...".format("Dry run" if dry_run else "Writing", filename))
+            status = "Dry run" if dry_run else "Writing"
+            print(f"{status} {filename}...")
             if not dry_run:
                 with open(filename, "w") as fp:
                     fp.write(self._lines)
@@ -104,16 +103,24 @@ class UpdateCopyright:
         \s+
         {OLD_COPYRIGHT_NAME}     # Copyright holder's name
         \s*$
-    """  # noqa
+    """
 
     def __init__(self, old_copyright_name, new_copyright_name):
         self._old_name = old_copyright_name
         self._new_name = new_copyright_name
 
-        self._pat = re.compile(self._copyright_regex.format(OLD_COPYRIGHT_NAME=re.escape(old_copyright_name)),
-                               re.VERBOSE | re.IGNORECASE)
-        self._commented_pat = re.compile(self._commented_copyright_regex.format(OLD_COPYRIGHT_NAME=re.escape(old_copyright_name)),  # noqa
-                                         re.VERBOSE | re.IGNORECASE)
+        self._pat = re.compile(
+            self._copyright_regex.format(
+                OLD_COPYRIGHT_NAME=re.escape(old_copyright_name)
+            ),
+            re.VERBOSE | re.IGNORECASE,
+        )
+        self._commented_pat = re.compile(
+            self._commented_copyright_regex.format(
+                OLD_COPYRIGHT_NAME=re.escape(old_copyright_name)
+            ),
+            re.VERBOSE | re.IGNORECASE,
+        )
 
     def run(self, files, skip_comment_check_for=[], dry_run=False, verbose=False):
         for filename in files:
@@ -123,7 +130,9 @@ class UpdateCopyright:
             else:
                 pat = self._commented_pat
 
-            item = CopyrightedFile(open(filename), pat, self._old_name, self._new_name, verbose=verbose)
+            item = CopyrightedFile(
+                open(filename), pat, self._old_name, self._new_name, verbose=verbose
+            )
             item.process(filename)
             item.update(filename, dry_run=dry_run)
 
@@ -135,20 +144,31 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description="Tool to remove 'company' from copyrights")
+    parser = argparse.ArgumentParser(
+        description="Tool to remove 'company' from copyrights"
+    )
     parser.add_argument("--old-copyright")
     parser.add_argument("--new-copyright")
-    parser.add_argument("--skip-comment-check-for", type=str, action="append", default=[],
-                        help="Takes a standard shell glob such as '*.md'. Remember to use single quotes around the glob so the shell does not consume them. Can be repeated as needed.")  # noqa
+    parser.add_argument(
+        "--skip-comment-check-for",
+        type=str,
+        action="append",
+        default=[],
+        help="Takes a standard shell glob such as '*.md'. Remember to use single quotes around the glob so the shell does not consume them. Can be repeated as needed.",
+    )  # noqa
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--verbose", action="store_true", default=False)
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
     tool = UpdateCopyright(args.old_copyright, args.new_copyright)
-    tool.run(args.files, skip_comment_check_for=args.skip_comment_check_for,
-             dry_run=args.dry_run, verbose=args.verbose)
+    tool.run(
+        args.files,
+        skip_comment_check_for=args.skip_comment_check_for,
+        dry_run=args.dry_run,
+        verbose=args.verbose,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
